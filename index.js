@@ -44,22 +44,22 @@ function NefitEasyAccessory(log, config) {
 
   this.service
     .getCharacteristic(Characteristic.TemperatureDisplayUnits)
-    .on('get', (callback) => callback(null, Characteristic.TemperatureDisplayUnits.CELSIUS))
-    .setProps({validValues: [Characteristic.TemperatureDisplayUnits.CELSIUS]});;
+    .onGet(() => Characteristic.TemperatureDisplayUnits.CELSIUS)
+    .setProps({validValues: [Characteristic.TemperatureDisplayUnits.CELSIUS]});
 
   this.service
     .getCharacteristic(Characteristic.CurrentTemperature)
-    .on('get', this.getTemperature.bind(this, 'current', 'in house temp', true));
+    .onGet(this.getTemperature.bind(this, 'current', 'in house temp', true));
 
   this.service
     .getCharacteristic(Characteristic.TargetTemperature)
-    .on('get', this.getTemperature.bind(this, 'target', 'temp setpoint', true))
-    .on('set', this.setTemperature.bind(this))
+    .onGet(this.getTemperature.bind(this, 'target', 'temp setpoint', true))
+    .onSet(this.setTemperature.bind(this))
     .setProps({minValue: 5, maxValue: 30, minStep: 0.5});
 
   this.service
     .getCharacteristic(Characteristic.CurrentHeatingCoolingState)
-    .on('get', this.getCurrentState.bind(this))
+    .onGet(this.getCurrentState.bind(this))
     .setProps(
       {validValues: [Characteristic.CurrentHeatingCoolingState.OFF,
                      Characteristic.CurrentHeatingCoolingState.HEAT]
@@ -67,77 +67,68 @@ function NefitEasyAccessory(log, config) {
 
   this.service
     .getCharacteristic(Characteristic.TargetHeatingCoolingState)
-    .on('get', (callback) => callback(null, Characteristic.TargetHeatingCoolingState.AUTO))
+    .onGet(() => Characteristic.TargetHeatingCoolingState.AUTO)
     .setProps({validValues: [Characteristic.TargetHeatingCoolingState.AUTO]});
 };
 
-const nefitEasyGetTemp = function(type, prop, skipOutdoor, callback) {
+const nefitEasyGetTemp = async function(type, prop, skipOutdoor) {
   this.log.debug('Getting %s temperature...', type);
 
-  deviceClient.status(skipOutdoor).then((status) => {
-    var temp = status[prop];
+  try {
+    const status = await deviceClient.status(skipOutdoor);
+    const temp = status[prop];
     if (!isNaN(temp) && isFinite(temp)) {
       this.log.debug('...%s temperature is %s', type, temp);
-      return callback(null, temp);
+      return temp;
     }
-    else {
-      this.log.debug('Request for temperature resulted in invalid value: %s', temp);
 
-      // Try one more time, this almost always results in a valid value.
-      deviceClient.status(skipOutdoor).then((newStatus) => {
-        var newTemp = newStatus[prop];
-        if (!isNaN(newTemp) && isFinite(newTemp)) {
-          this.log.debug("Retry request for temperature resulted in valid value: %s", newTemp);
-          return callback(null, newTemp);
-        }
-        else {
-          this.log.debug("Retry request for temperature resulted in invalid value again: %s", newTemp);
-
-          // Return last known value, needed to keep service responsive for Siri.
-          if (prop == 'in house temp' || prop == 'outdoor temp') {
-            return callback(null, this.service.getCharacteristic(Characteristic.CurrentTemperature).value);
-          }
-          else if (prop == 'temp setpoint') {
-            return callback(null, this.service.getCharacteristic(Characteristic.TargetTemperature).value);
-          }
-        }
-      });
+    // Try one more time, this almost always results in a valid value.
+    this.log.debug('Request for temperature resulted in invalid value: %s', temp);
+    const newStatus = await deviceClient.status(skipOutdoor);
+    const newTemp = newStatus[prop];
+    if (!isNaN(newTemp) && isFinite(newTemp)) {
+      this.log.debug('Retry request for temperature resulted in valid value: %s', newTemp);
+      return newTemp;
     }
-  }).catch((e) => {
+
+    this.log.debug('Retry request for temperature resulted in invalid value again: %s', newTemp);
+
+    // Return last known value, needed to keep service responsive for Siri.
+    if (prop === 'in house temp' || prop === 'outdoor temp') {
+      return this.service.getCharacteristic(Characteristic.CurrentTemperature).value;
+    } else if (prop === 'temp setpoint') {
+      return this.service.getCharacteristic(Characteristic.TargetTemperature).value;
+    }
+  } catch (e) {
     console.error(e);
-    return callback(e);
-  });
+    throw e;
+  }
 };
 
 NefitEasyAccessory.prototype.getTemperature = nefitEasyGetTemp;
 
-NefitEasyAccessory.prototype.setTemperature = function(temp, callback) {
+NefitEasyAccessory.prototype.setTemperature = async function(temp) {
   // Round off to nearest half/full.
   temp = Math.round(temp * 2) / 2;
 
   this.log.info('Setting temperature to %s', temp);
-  deviceClient.setTemperature(temp).then(() => {
-    return callback();
-  }).catch((e) => {
-    return callback(e);
-  });
+  await deviceClient.setTemperature(temp);
 };
 
-NefitEasyAccessory.prototype.getCurrentState = function(callback) {
+NefitEasyAccessory.prototype.getCurrentState = async function() {
   this.log.debug('Getting current state..');
 
-  deviceClient.status(true).then((status) => {
-    var state     = status['boiler indicator'];
-    var isHeating = state === 'central heating';
+  try {
+    const status = await deviceClient.status(true);
+    const state = status['boiler indicator'];
+    const isHeating = state === 'central heating';
     this.log.debug('...current state is', state);
-    return callback(null,
-      isHeating ? Characteristic.CurrentHeatingCoolingState.HEAT :
-                  Characteristic.CurrentHeatingCoolingState.OFF
-    );
-  }).catch((e) => {
+    return isHeating ? Characteristic.CurrentHeatingCoolingState.HEAT :
+                       Characteristic.CurrentHeatingCoolingState.OFF;
+  } catch (e) {
     console.error(e);
-    return callback(e);
-  });
+    throw e;
+  }
 };
 
 NefitEasyAccessory.prototype.getServices = nefitEasyServices;
@@ -167,7 +158,7 @@ function NefitEasyAccessoryOutdoorTemp(log, config) {
 
   this.service
     .getCharacteristic(Characteristic.CurrentTemperature)
-    .on('get', this.getTemperature.bind(this, 'outdoor', 'outdoor temp', false));
+    .onGet(this.getTemperature.bind(this, 'outdoor', 'outdoor temp', false));
 };
 
 NefitEasyAccessoryOutdoorTemp.prototype.getTemperature = nefitEasyGetTemp;

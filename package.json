@@ -11,8 +11,8 @@
     "bosch"
   ],
   "engines": {
-    "node": ">=6.0.0",
-    "homebridge": ">=0.2.0"
+    "node": ">=18.0.0",
+    "homebridge": "^1.6.0 || ^2.0.0"
   },
   "repository": "robertklep/homebridge-nefit-easy",
   "author": "Robert Klep <robert@klep.name>",
