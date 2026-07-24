@@ -1,8 +1,10 @@
 {
   "name": "homebridge-nefit-easy",
-  "version": "2.4.0",
+  "version": "3.0.0",
   "description": "Homebridge plugin for Nefit Easy™ (aka Worcester Wave™, Junkers Control™)",
-  "main": "index.js",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "keywords": [
     "homebridge-plugin",
     "nefit easy",
@@ -11,9 +13,20 @@
     "bosch"
   ],
   "engines": {
-    "node": "^20.18.0 || ^22.10.0 || ^24.0.0",
-    "homebridge": "^1.8.0 || ^2.0.0"
+    "homebridge": "^1.6.0 || ^2.0.0",
+    "node": "^22.12.0 || ^24.0.0"
   },
+  "scripts": {
+    "build": "rimraf ./dist && tsc",
+    "lint": "eslint src test",
+    "test": "tsx --test --experimental-test-module-mocks test/*.test.ts",
+    "watch": "npm run build && npm link && nodemon",
+    "prepublishOnly": "npm run lint && npm run build && npm test"
+  },
+  "files": [
+    "dist",
+    "config.schema.json"
+  ],
   "repository": "homebridge-plugins/homebridge-nefit-easy",
   "bugs": {
     "url": "https://github.com/homebridge-plugins/homebridge-nefit-easy/issues"
@@ -22,6 +35,18 @@
   "author": "Robert Klep <robert@klep.name>",
   "license": "MIT",
   "dependencies": {
-    "nefit-easy-commands": "^3.0.5"
+    "bosch-xmpp": "^2.0.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.0.0",
+    "@homebridge/hap-nodejs": "^2.1.0",
+    "@types/node": "^22.0.0",
+    "eslint": "^9.0.0",
+    "homebridge": "^2.0.0",
+    "nodemon": "^3.0.0",
+    "rimraf": "^6.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.7.0",
+    "typescript-eslint": "^8.0.0"
   }
 }
