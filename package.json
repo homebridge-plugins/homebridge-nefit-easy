@@ -25,7 +25,8 @@
   },
   "files": [
     "dist",
-    "config.schema.json"
+    "config.schema.json",
+    "CHANGELOG.md"
   ],
   "repository": "homebridge-plugins/homebridge-nefit-easy",
   "bugs": {
