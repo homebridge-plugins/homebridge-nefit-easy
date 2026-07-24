@@ -1,6 +1,6 @@
 {
   "name": "homebridge-nefit-easy",
-  "version": "2.3.1",
+  "version": "2.4.0",
   "description": "Homebridge plugin for Nefit Easy™ (aka Worcester Wave™, Junkers Control™)",
   "main": "index.js",
   "keywords": [
@@ -11,10 +11,14 @@
     "bosch"
   ],
   "engines": {
-    "node": ">=18.0.0",
-    "homebridge": "^1.6.0 || ^2.0.0"
+    "node": "^20.18.0 || ^22.10.0 || ^24.0.0",
+    "homebridge": "^1.8.0 || ^2.0.0"
   },
-  "repository": "robertklep/homebridge-nefit-easy",
+  "repository": "homebridge-plugins/homebridge-nefit-easy",
+  "bugs": {
+    "url": "https://github.com/homebridge-plugins/homebridge-nefit-easy/issues"
+  },
+  "homepage": "https://github.com/homebridge-plugins/homebridge-nefit-easy#readme",
   "author": "Robert Klep <robert@klep.name>",
   "license": "MIT",
   "dependencies": {
