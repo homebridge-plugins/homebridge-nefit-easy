@@ -1,10 +1,12 @@
 const NefitEasyClient = require('nefit-easy-commands');
-var Service, Characteristic;
+var Service, Characteristic, HapStatusError, HAPStatus;
 var deviceClient;
 
 module.exports = function(homebridge) {
   Service        = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
+  HapStatusError = homebridge.hap.HapStatusError;
+  HAPStatus      = homebridge.hap.HAPStatus;
 
   homebridge.registerAccessory('homebridge-nefit-easy', 'NefitEasy', NefitEasyAccessory);
   homebridge.registerAccessory('homebridge-nefit-easy', 'NefitEasyOutdoorTemp', NefitEasyAccessoryOutdoorTemp);
@@ -31,15 +33,17 @@ function NefitEasyAccessory(log, config) {
   }
 
   this.serialNumber = creds.serialNumber;
+  this.lastKnown    = {};
   this.service = new Service.Thermostat(this.name);
 
   if (typeof deviceClient === 'undefined') {
     deviceClient  = NefitEasyClient(creds);
   }
 
-  // Establish connection with device.
+  // Establish connection with device. Throwing from here would be an unhandled
+  // rejection, which terminates the Homebridge process on Node 20+.
   deviceClient.connect().catch((e) => {
-    throw Error(e);
+    this.log.error('Failed to connect to Nefit Easy device:', e.message || e);
   });
 
   this.service
@@ -79,6 +83,7 @@ const nefitEasyGetTemp = async function(type, prop, skipOutdoor) {
     const temp = status[prop];
     if (!isNaN(temp) && isFinite(temp)) {
       this.log.debug('...%s temperature is %s', type, temp);
+      this.lastKnown[prop] = temp;
       return temp;
     }
 
@@ -88,20 +93,26 @@ const nefitEasyGetTemp = async function(type, prop, skipOutdoor) {
     const newTemp = newStatus[prop];
     if (!isNaN(newTemp) && isFinite(newTemp)) {
       this.log.debug('Retry request for temperature resulted in valid value: %s', newTemp);
+      this.lastKnown[prop] = newTemp;
       return newTemp;
     }
 
     this.log.debug('Retry request for temperature resulted in invalid value again: %s', newTemp);
 
-    // Return last known value, needed to keep service responsive for Siri.
-    if (prop === 'in house temp' || prop === 'outdoor temp') {
-      return this.service.getCharacteristic(Characteristic.CurrentTemperature).value;
-    } else if (prop === 'temp setpoint') {
-      return this.service.getCharacteristic(Characteristic.TargetTemperature).value;
+    // Return last known value, needed to keep service responsive for Siri. Tracked
+    // separately because the characteristic itself defaults to 0, which would be
+    // reported as a real 0°C reading before the first successful poll.
+    if (prop in this.lastKnown) {
+      return this.lastKnown[prop];
     }
+
+    throw new HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   } catch (e) {
-    console.error(e);
-    throw e;
+    if (e instanceof HapStatusError) {
+      throw e;
+    }
+    this.log.error('Error getting %s temperature:', type, e.message || e);
+    throw new HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 };
 
@@ -112,7 +123,12 @@ NefitEasyAccessory.prototype.setTemperature = async function(temp) {
   temp = Math.round(temp * 2) / 2;
 
   this.log.info('Setting temperature to %s', temp);
-  await deviceClient.setTemperature(temp);
+  try {
+    await deviceClient.setTemperature(temp);
+  } catch (e) {
+    this.log.error('Error setting temperature:', e.message || e);
+    throw new HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
+  }
 };
 
 NefitEasyAccessory.prototype.getCurrentState = async function() {
@@ -126,8 +142,8 @@ NefitEasyAccessory.prototype.getCurrentState = async function() {
     return isHeating ? Characteristic.CurrentHeatingCoolingState.HEAT :
                        Characteristic.CurrentHeatingCoolingState.OFF;
   } catch (e) {
-    console.error(e);
-    throw e;
+    this.log.error('Error getting current state:', e.message || e);
+    throw new HapStatusError(HAPStatus.SERVICE_COMMUNICATION_FAILURE);
   }
 };
 
@@ -145,15 +161,17 @@ function NefitEasyAccessoryOutdoorTemp(log, config) {
   }
 
   this.serialNumber = creds.serialNumber;
+  this.lastKnown    = {};
   this.service = new Service.TemperatureSensor(this.name);
 
   if (typeof deviceClient === 'undefined') {
     deviceClient  = NefitEasyClient(creds);
   }
 
-  // Establish connection with device.
+  // Establish connection with device. Throwing from here would be an unhandled
+  // rejection, which terminates the Homebridge process on Node 20+.
   deviceClient.connect().catch((e) => {
-    throw Error(e);
+    this.log.error('Failed to connect to Nefit Easy device:', e.message || e);
   });
 
   this.service

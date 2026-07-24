@@ -1,16 +1,17 @@
-# DEPRECATED
-
-Since I stopped using Homebridge many years ago, and also haven't had a Nefit Easy for more than 4 years, this plugin is deprecated. It may still work for you, or it may not, but I cannot provide support for it.
-
 # Homebridge Nefit Easy™ plugin
 
-This is a plugin for [Homebridge](https://github.com/nfarina/homebridge) to allow controlling your Nefit Easy™ (aka Worcester Wave™, Junkers Control™) thermostat through iOS' HomeKit.
+This is a plugin for [Homebridge](https://homebridge.io) to allow controlling your Nefit Easy™ (aka Worcester Wave™, Junkers Control™) thermostat through Apple HomeKit.
 
 Uses the [`nefit-easy-commands`](https://github.com/robertklep/nefit-easy-commands) module under the hood to communicate with the Nefit/Bosch backend.
 
+## Requirements
+
+* Node.js 20.18.0 or later
+* Homebridge v1.8.0 or later, including Homebridge v2
+
 ## Installation
 
-_This library requires Node.js 6.0.0 or later!_
+Search for `homebridge-nefit-easy` on the Plugins tab of the Homebridge UI, or install it from the command line:
 
 ```
 $ npm i homebridge-nefit-easy -g
