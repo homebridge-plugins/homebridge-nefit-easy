@@ -22,12 +22,8 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      # See the note in release.yml: a transitive GitHub tarball dependency needs
-      # allow-remote, which npm 12 defaults to none.
       - name: Install dependencies
-        run: npm install --allow-remote=all
+        run: npm ci
 
   eslint:
     uses: homebridge/.github/.github/workflows/eslint.yml@latest
-    with:
-      install_cmd: npm ci --allow-remote=all
