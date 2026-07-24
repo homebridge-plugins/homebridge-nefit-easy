@@ -51,6 +51,23 @@ Fields read from the `uiStatus` payload:
 
 Setting a temperature needs all three PUTs. The thermostat ignores a new setpoint unless the manual override is switched on as well.
 
+### `LINE_SEPARATOR` is not optional
+
+`connect()` sets `client.LINE_SEPARATOR = '\r'`. Do not remove it.
+
+`bosch-xmpp` builds `PUT` bodies by joining the header lines with a bare `\n`, and `GET` bodies with `\n\n`. The thermostat answers every bare-LF `PUT` with `400 Bad Request` and an empty body, while `GET` happens to use a separator it tolerates. So reads work, writes silently do not, which looks like a credentials or endpoint problem but is neither.
+
+A lone `\r` is the right value because `NefitEasyClient.buildMessage` serialises it into the stanza as `&#13;\n`, which reaches the device as a proper CRLF. Verified against a live device:
+
+| Separator | GET | PUT |
+|---|---|---|
+| `\n` (library default for PUT) | n/a | 400 |
+| `\r` (becomes CRLF) | ok | ok |
+| `\r\n` (becomes CR LF LF) | ok | 400 |
+| `\n\n` (library default for GET) | ok | ok |
+
+`\n\n` also works, but `\r` is the only variant that produces valid HTTP framing and is clearly what the library intended. There is a regression test for this in `test/thermostatAccessory.test.ts`; if a `bosch-xmpp` upgrade ever makes it unnecessary, delete the line and the test together, and re-test writes against a real device first.
+
 These endpoint and field definitions were taken from `nefit-easy-commands`, the library this plugin depended on up to 2.x (`lib/commands/status.js` and `lib/commands/setTemperature.js`), and from the `bosch-xmpp` README. Both are MIT and by the same author as the original plugin. If you need a field this plugin does not read yet, look there first rather than guessing.
 
 ## Conventions that matter

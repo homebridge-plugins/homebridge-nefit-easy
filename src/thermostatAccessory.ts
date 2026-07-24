@@ -27,8 +27,22 @@ const RECONNECT_DELAY = 30_000;
 
 const OUTDOOR_SERVICE_SUBTYPE = 'outdoor';
 
+interface BackendError extends Error {
+  response?: { statusCode?: string; statusMessage?: string };
+}
+
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  if (!(error instanceof Error)) {
+    return String(error);
+  }
+  // bosch-xmpp attaches the raw response to its errors. Without it a refused
+  // write only ever reports INVALID_RESPONSE, which says nothing about why.
+  const { response } = error as BackendError;
+  if (!response?.statusCode) {
+    return error.message;
+  }
+  const status = [response.statusCode, response.statusMessage].filter(Boolean).join(' ');
+  return `${error.message} (HTTP ${status})`;
 }
 
 export class NefitEasyThermostat {
@@ -151,6 +165,15 @@ export class NefitEasyThermostat {
 
     try {
       this.client = boschXmpp.NefitEasyClient(this.credentials);
+
+      // bosch-xmpp builds PUT requests with bare LF line endings, which the
+      // thermostat answers with 400 Bad Request; only GET happens to use a
+      // separator it tolerates. A lone CR here is serialised into the stanza as
+      // `&#13;\n`, so it reaches the device as a proper CRLF and the request
+      // parses. Verified against a live device: reads work either way, writes
+      // only work with this set.
+      this.client.LINE_SEPARATOR = '\r';
+
       await this.client.connect();
 
       // Homebridge may have shut down while the handshake was in flight; without

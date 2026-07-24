@@ -6,6 +6,8 @@ declare module 'bosch-xmpp' {
   }
 
   export interface BoschClient {
+    /** Separator between the header lines of a request. See thermostatAccessory.ts. */
+    LINE_SEPARATOR?: string;
     connect(): Promise<void>;
     get(uri: string): Promise<unknown>;
     put(uri: string, data: unknown): Promise<unknown>;

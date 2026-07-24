@@ -347,6 +347,24 @@ test('the outdoor sensor is only present when enabled, and reports its reading',
   thermostat.dispose();
 });
 
+test('requests use CR line endings, which the thermostat requires for writes', async () => {
+  const harness = makeHarness();
+  let client: StubClient & { LINE_SEPARATOR?: string };
+  clientFactory = () => {
+    client = healthyClient({ IHT: '19', TSP: '20', BAI: 'No' });
+    return client;
+  };
+
+  const thermostat = build(harness);
+  await flush();
+
+  // Without this the backend answers every PUT with 400 Bad Request. bosch-xmpp
+  // defaults to a bare LF, so the separator has to be set explicitly.
+  assert.equal(client!.LINE_SEPARATOR, '\r');
+
+  thermostat.dispose();
+});
+
 test('dispose closes the connection and stops polling', async () => {
   const harness = makeHarness();
   let ended = false;
