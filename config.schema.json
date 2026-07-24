@@ -1,0 +1,50 @@
+{
+  "pluginAlias": "NefitEasy",
+  "pluginType": "platform",
+  "singular": true,
+  "headerDisplay": "Homebridge plugin for the Nefit Easy™ (aka Worcester Wave™, Junkers Control™) thermostat.",
+  "footerDisplay": "The serial number, access key and password are the same credentials you use in the Nefit Easy app.",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "title": "Name",
+        "type": "string",
+        "default": "Nefit Easy",
+        "required": true,
+        "description": "The name shown in HomeKit."
+      },
+      "serialNumber": {
+        "title": "Serial Number",
+        "type": "string",
+        "required": true,
+        "description": "The serial number of your Nefit Easy thermostat."
+      },
+      "accessKey": {
+        "title": "Access Key",
+        "type": "string",
+        "required": true,
+        "description": "The access key of your Nefit Easy thermostat."
+      },
+      "password": {
+        "title": "Password",
+        "type": "string",
+        "required": true,
+        "description": "The password you set in the Nefit Easy app."
+      },
+      "showOutdoorTemperature": {
+        "title": "Show outdoor temperature",
+        "type": "boolean",
+        "default": false,
+        "description": "Adds a separate temperature sensor for the outdoor temperature measured by the thermostat."
+      },
+      "pollingInterval": {
+        "title": "Polling interval (seconds)",
+        "type": "integer",
+        "default": 60,
+        "minimum": 30,
+        "description": "How often the backend is polled. Values below 30 seconds are raised to 30."
+      }
+    }
+  }
+}
